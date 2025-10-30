@@ -1,51 +1,77 @@
-# FrioControl - Sistema de Gestão
+// Criar empresa padrão - VERSÃO CORRIGIDA
+async function createDefaultCompany() {
+    try {
+        const companyData = {
+            name: 'Minha Empresa - ' + currentUser.email,
+            cnpj: '00.000.000/' + Math.floor(1000 + Math.random() * 9000) + '-00',
+            address: 'Endereço da Empresa',
+            zip_code: '00000-000',
+            city: 'São Paulo',
+            state: 'SP',
+            phone: '(11) 99999-9999',
+            email: currentUser.email,
+            status: 'active'
+        };
 
-Sistema completo de gestão para empresas de manutenção de ar-condicionado.
+        console.log('📦 Criando empresa com dados:', companyData);
 
-## 🚀 Funcionalidades
+        const { data: company, error } = await supabase
+            .from('companies')
+            .insert([companyData])
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('❌ Erro ao criar empresa:', error);
+            throw error;
+        }
 
-- ✅ **Gestão de Empresas** - Cadastro completo de empresas
-- ✅ **Gestão de Usuários** - Cadastro com vínculo a empresas
-- ✅ **Controle de Chamados** - Abertura e acompanhamento
-- ✅ **Orçamentos** - Criação e gestão de orçamentos
-- ✅ **Financeiro** - Controle de receitas e despesas
-- ✅ **Relatórios** - Relatórios gerenciais
-- ✅ **Multi-perfil** - Admin, Técnico, Atendente
+        console.log('✅ Empresa criada:', company);
 
-## 🛠️ Tecnologias
+        // Atualizar perfil do usuário
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+                company_id: company.id,
+                full_name: currentUser.user_metadata?.full_name || currentUser.email.split('@')[0]
+            })
+            .eq('id', currentUser.id);
+        
+        if (updateError) {
+            console.error('❌ Erro ao atualizar perfil:', updateError);
+            // Tentar criar o perfil se não existir
+            await createUserProfile(company.id);
+        }
+        
+        currentCompany = company;
+        userProfile = { ...userProfile, company_id: company.id };
+        showAppScreen();
+        
+    } catch (error) {
+        console.error('💥 Erro ao criar empresa padrão:', error);
+        showAlert('Erro ao configurar empresa: ' + error.message, 'error');
+    }
+}
 
-- **Frontend**: HTML5, CSS3, JavaScript
-- **Backend**: Supabase (PostgreSQL + Auth)
-- **Deploy**: Netlify
-
-## 📦 Deploy no Netlify
-
-1. Faça push para o GitHub
-2. Acesse [Netlify](https://netlify.com)
-3. Conecte com GitHub e selecione o repositório
-4. Deploy automático!
-
-## 🔧 Configuração do Netlify
-
-- **Production branch**: `main`
-- **Build command**: (deixe vazio)
-- **Publish directory**: (deixe vazio ou `.`)
-
-## 📋 Estrutura do Banco
-
-### Tabelas Principais:
-- `companies` - Cadastro de empresas
-- `profiles` - Perfis de usuários
-- `tickets` - Chamados de serviço
-- `budgets` - Orçamentos
-- `financial_transactions` - Transações financeiras
-
-## 👥 Perfis de Usuário
-
-- **Administrador**: Acesso total ao sistema
-- **Técnico**: Apenas chamados e dashboard
-- **Atendente**: Clientes, financeiro e orçamentos
-
-## 📞 Suporte
-
-Desenvolvido por [DevSparkWeb](https://devsparkweb.netlify.app)
+// Criar perfil do usuário se não existir
+async function createUserProfile(companyId) {
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .insert([
+                {
+                    id: currentUser.id,
+                    full_name: currentUser.user_metadata?.full_name || currentUser.email.split('@')[0],
+                    role: 'admin',
+                    company_id: companyId,
+                    active: true
+                }
+            ]);
+        
+        if (error) throw error;
+        
+        console.log('✅ Perfil criado para usuário');
+    } catch (error) {
+        console.error('❌ Erro ao criar perfil:', error);
+    }
+}
