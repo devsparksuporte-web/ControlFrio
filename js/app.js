@@ -165,3 +165,20 @@ async function createUserProfile(companyId) {
     }
 }
 
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Inicializando sistema...');
+    
+    // Configurar navegação por hash primeiro
+    setupHashNavigation();
+    
+    // Carregar empresas para o login
+    await loadCompaniesForLogin();
+    
+    // Verificar se já existe uma sessão ativa
+    await checkUserSession();
+    
+    // Configurar eventos
+    setupEventListeners();
+    
+    console.log('✅ Sistema inicializado');
+});
