@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrioControl - Sistema de Gestão</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* (MANTENHA TODO O CSS ANTERIOR - É O MESMO) */
+        :root {
+            --primary: #1a73e8;
+            --secondary: #34a853;
+            --accent: #4285f4;
+            --warning: #fbbc05;
+            --danger: #ea4335;
+            --light: #f8f9fa;
+            --dark: #202124;
+            --gray: #5f6368;
+            --light-gray: #dadce0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        /* (MANTENHA TODO O RESTANTE DO CSS ANTERIOR) */
+        
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-left">
+            <h1><i class="fas fa-snowflake"></i> FrioControl</h1>
+            <p>Sistema completo de gestão para empresas de manutenção de ar-condicionado. Controle de chamados, clientes, técnicos e muito mais.</p>
+            
+            <div class="demo-accounts">
+                <h3><i class="fas fa-key"></i> Modo Demonstração</h3>
+                <div class="demo-account" onclick="showDemoInfo()">
+                    <strong>Clique para informações de teste</strong><br>
+                    <small>O sistema está conectado ao banco de dados real</small>
+                </div>
+            </div>
+        </div>
+        <div class="login-right">
+            <div class="login-form">
+                <h2>Login</h2>
+                <div id="loginAlert" class="alert alert-error"></div>
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" class="form-control" placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" class="form-control" placeholder="Sua senha">
+                </div>
+                <button id="loginBtn" class="btn btn-primary btn-block">
+                    <span id="loginText">Entrar</span>
+                    <div id="loginSpinner" class="spinner hidden"></div>
+                </button>
+                
+                <div class="login-footer">
+                    <div class="dev-credit-login">Desenvolvido por</div>
+                    <a href="https://devsparkweb.netlify.app/" target="_blank" class="dev-link-login">
+                        DevSparkWeb - Soluções em Tecnologia
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div id="appScreen" class="container hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-snowflake"></i> <span>FrioControl</span></h2>
+                <div class="company-info" id="currentCompany">Carregando...</div>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    <li class="active" data-tab="dashboard"><a href="#"><i class="fas fa-home"></i> <span>Dashboard</span></a></li>
+                    <li data-tab="tickets"><a href="#"><i class="fas fa-ticket-alt"></i> <span>Chamados</span></a></li>
+                    <li data-tab="clients" class="admin-attendant"><a href="#"><i class="fas fa-building"></i> <span>Clientes</span></a></li>
+                    <li data-tab="users" class="admin-only"><a href="#"><i class="fas fa-users"></i> <span>Usuários</span></a></li>
+                    <li data-tab="companies" class="admin-only"><a href="#"><i class="fas fa-building"></i> <span>Empresas</span></a></li>
+                    <li data-tab="equipments" class="admin-only"><a href="#"><i class="fas fa-tools"></i> <span>Equipamentos</span></a></li>
+                    <li data-tab="finance" class="admin-attendant"><a href="#"><i class="fas fa-dollar-sign"></i> <span>Financeiro</span></a></li>
+                    <li data-tab="budgets" class="admin-attendant"><a href="#"><i class="fas fa-file-invoice-dollar"></i> <span>Orçamentos</span></a></li>
+                    <li data-tab="reports" class="admin-only"><a href="#"><i class="fas fa-chart-bar"></i> <span>Relatórios</span></a></li>
+                    <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></a></li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="dev-credit">Desenvolvido por</div>
+                <a href="https://devsparkweb.netlify.app/" target="_blank" class="dev-link">
+                    DevSparkWeb - Soluções em Tecnologia
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Pesquisar...">
+                </div>
+                <div class="user-info">
+                    <img src="https://i.pravatar.cc/150?img=12" alt="User">
+                    <div>
+                        <div id="userName">Carregando...</div>
+                        <div style="font-size: 0.8rem; color: var(--gray);" id="userRole">Administrador</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="content">
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="page-title">
+                        <h1>Dashboard</h1>
+                        <div>
+                            <button class="btn btn-primary" id="newTicketBtn"><i class="fas fa-plus"></i> Novo Chamado</button>
+                            <button class="btn btn-success admin-attendant-btn" id="newBudgetBtn"><i class="fas fa-file-invoice-dollar"></i> Novo Orçamento</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Dashboard Cards -->
+                    <div class="dashboard-cards">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Chamados Abertos</div>
+                                <div class="card-icon blue">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                            </div>
+                            <div class="card-value" id="openTickets">0</div>
+                            <div class="card-footer">Carregando...</div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Em Andamento</div>
+                                <div class="card-icon orange">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                            </div>
+                            <div class="card-value" id="inProgressTickets">0</div>
+                            <div class="card-footer">Carregando...</div>
+                        </div>
+                        
+                        <div class="card admin-attendant-card">
+                            <div class="card-header">
+                                <div class="card-title">Orçamentos Pendentes</div>
+                                <div class="card-icon purple">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </div>
+                            </div>
+                            <div class="card-value" id="pendingBudgets">0</div>
+                            <div class="card-footer">Carregando...</div>
+                        </div>
+                        
+                        <div class="card admin-attendant-card">
+                            <div class="card-header">
+                                <div class="card-title">Receita do Mês</div>
+                                <div class="card-icon green">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                            </div>
+                            <div class="card-value" id="monthlyRevenue">R$ 0</div>
+                            <div class="card-footer">Carregando...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts and Tables -->
+                    <div class="table-container">
+                        <div class="section-title">Últimos Chamados</div>
+                        <table id="ticketsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Assunto</th>
+                                    <th>Técnico</th>
+                                    <th>Prioridade</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" style="text-align: center;">Carregando dados do banco...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Tickets Tab -->
+                <div id="tickets" class="tab-content">
+                    <div class="page-title">
+                        <h1>Gerenciar Chamados</h1>
+                        <button class="btn btn-primary" id="addTicketBtn"><i class="fas fa-plus"></i> Novo Chamado</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <div class="section-title">Todos os Chamados</div>
+                        <table id="allTicketsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Assunto</th>
+                                    <th>Técnico</th>
+                                    <th>Prioridade</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">Carregando dados do banco...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Users Tab -->
+                <div id="users" class="tab-content">
+                    <div class="page-title">
+                        <h1>Gerenciar Usuários</h1>
+                        <button class="btn btn-primary" id="addUserBtn"><i class="fas fa-plus"></i> Novo Usuário</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <div class="section-title">Lista de Usuários</div>
+                        <table id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Perfil</th>
+                                    <th>Empresa</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" style="text-align: center;">Carregando dados do banco...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Companies Tab -->
+                <div id="companies" class="tab-content admin-only">
+                    <div class="page-title">
+                        <h1>Gerenciar Empresas</h1>
+                        <button class="btn btn-primary" id="addCompanyBtn"><i class="fas fa-plus"></i> Nova Empresa</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <div class="section-title">Lista de Empresas</div>
+                        <table id="companiesTable">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>CNPJ</th>
+                                    <th>Telefone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Data de Criação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" style="text-align: center;">Carregando dados do banco...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Other tabs -->
+                <div id="clients" class="tab-content">
+                    <div class="page-title">
+                        <h1>Clientes</h1>
+                        <button class="btn btn-primary"><i class="fas fa-plus"></i> Novo Cliente</button>
+                    </div>
+                    <p>Conteúdo da gestão de clientes...</p>
+                </div>
+                
+                <div id="equipments" class="tab-content">
+                    <div class="page-title">
+                        <h1>Equipamentos</h1>
+                        <button class="btn btn-primary"><i class="fas fa-plus"></i> Novo Equipamento</button>
+                    </div>
+                    <p>Conteúdo da gestão de equipamentos...</p>
+                </div>
+                
+                <div id="finance" class="tab-content">
+                    <div class="page-title">
+                        <h1>Financeiro</h1>
+                        <button class="btn btn-success"><i class="fas fa-plus"></i> Nova Receita</button>
+                    </div>
+                    <p>Conteúdo do financeiro...</p>
+                </div>
+                
+                <div id="budgets" class="tab-content">
+                    <div class="page-title">
+                        <h1>Orçamentos</h1>
+                        <button class="btn btn-primary" id="addBudgetBtn"><i class="fas fa-plus"></i> Novo Orçamento</button>
+                    </div>
+                    <p>Conteúdo dos orçamentos...</p>
+                </div>
+                
+                <div id="reports" class="tab-content">
+                    <div class="page-title">
+                        <h1>Relatórios</h1>
+                        <button class="btn btn-primary"><i class="fas fa-download"></i> Exportar Relatório</button>
+                    </div>
+                    <p>Conteúdo dos relatórios...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Cadastro/Edição de Empresa -->
+    <div id="companyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="companyModalTitle">Nova Empresa</h3>
+                <button class="close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="companyForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyName">Nome da Empresa *</label>
+                            <input type="text" id="companyName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="companyCnpj">CNPJ</label>
+                            <input type="text" id="companyCnpj" class="form-control" placeholder="00.000.000/0000-00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyPhone">Telefone</label>
+                            <input type="text" id="companyPhone" class="form-control" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label for="companyEmail">Email</label>
+                            <input type="email" id="companyEmail" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyAddress">Endereço</label>
+                            <input type="text" id="companyAddress" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="companyCity">Cidade</label>
+                            <input type="text" id="companyCity" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyState">Estado</label>
+                            <select id="companyState" class="form-control">
+                                <option value="">Selecione</option>
+                                <option value="AC">Acre</option>
+                                <option value="AL">Alagoas</option>
+                                <option value="AP">Amapá</option>
+                                <option value="AM">Amazonas</option>
+                                <option value="BA">Bahia</option>
+                                <option value="CE">Ceará</option>
+                                <option value="DF">Distrito Federal</option>
+                                <option value="ES">Espírito Santo</option>
+                                <option value="GO">Goiás</option>
+                                <option value="MA">Maranhão</option>
+                                <option value="MT">Mato Grosso</option>
+                                <option value="MS">Mato Grosso do Sul</option>
+                                <option value="MG">Minas Gerais</option>
+                                <option value="PA">Pará</option>
+                                <option value="PB">Paraíba</option>
+                                <option value="PR">Paraná</option>
+                                <option value="PE">Pernambuco</option>
+                                <option value="PI">Piauí</option>
+                                <option value="RJ">Rio de Janeiro</option>
+                                <option value="RN">Rio Grande do Norte</option>
+                                <option value="RS">Rio Grande do Sul</option>
+                                <option value="RO">Rondônia</option>
+                                <option value="RR">Roraima</option>
+                                <option value="SC">Santa Catarina</option>
+                                <option value="SP">São Paulo</option>
+                                <option value="SE">Sergipe</option>
+                                <option value="TO">Tocantins</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="companyStatus">Status</label>
+                            <select id="companyStatus" class="form-control">
+                                <option value="active">Ativa</option>
+                                <option value="inactive">Inativa</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="companyNotes">Observações</label>
+                        <textarea id="companyNotes" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelCompanyBtn">Cancelar</button>
+                <button class="btn btn-primary" id="saveCompanyBtn">Salvar Empresa</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase - COM SUAS CREDENCIAIS
+        const SUPABASE_URL = 'https://rukvaidffgqqoxplqiyx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1a3ZhaWRmZmdxcW94cGxxaXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MzM3MTYsImV4cCI6MjA3NzQwOTcxNn0.JCpTcUw6n_POIowuS_kvIjz-VHeo7wnsrzcBaoRlpvI';
+        
+        // Inicializar o cliente Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Estado da aplicação
+        let currentUser = null;
+        let currentCompany = null;
+        let userProfile = null;
+        let editingCompanyId = null;
+
+        // Elementos da DOM
+        const loginScreen = document.getElementById('loginScreen');
+        const appScreen = document.getElementById('appScreen');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const currentCompanyElement = document.getElementById('currentCompany');
+        const userNameElement = document.getElementById('userName');
+        const userRoleElement = document.getElementById('userRole');
+        const loginAlert = document.getElementById('loginAlert');
+        const loginText = document.getElementById('loginText');
+        const loginSpinner = document.getElementById('loginSpinner');
+
+        // Função para mostrar informações de demonstração
+        function showDemoInfo() {
+            alert(`🌐 SISTEMA CONECTADO AO BANCO REAL
+
+📊 Banco de dados: Supabase
+🔗 URL: ${SUPABASE_URL}
+📋 Tabela companies: Já existe no banco
+🔐 Segurança: RLS ativado
+
+💡 Para testar:
+1. Faça login com suas credenciais
+2. Cadastre novas empresas na aba "Empresas"
+3. Os dados serão salvos na tabela existente
+
+🚀 Sistema funcionando com sua estrutura atual!`);
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar se já existe uma sessão ativa
+            await checkUserSession();
+            
+            // Configurar navegação entre abas
+            setupTabNavigation();
+            
+            // Configurar eventos da empresa
+            document.getElementById('addCompanyBtn').addEventListener('click', () => openCompanyModal());
+            document.getElementById('saveCompanyBtn').addEventListener('click', () => saveCompany());
+            document.getElementById('cancelCompanyBtn').addEventListener('click', () => closeCompanyModal());
+            document.querySelector('#companyModal .close').addEventListener('click', () => closeCompanyModal());
+        });
+
+        // Verificar sessão do usuário
+        async function checkUserSession() {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (session) {
+                currentUser = session.user;
+                await fetchUserProfile();
+            }
+        }
+
+        // Buscar perfil do usuário
+        async function fetchUserProfile() {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                if (error) throw error;
+                
+                userProfile = profile;
+                
+                // Buscar empresa - adaptado para estrutura existente
+                if (userProfile.company_id) {
+                    const { data: company, error: companyError } = await supabase
+                        .from('companies')
+                        .select('*')
+                        .eq('id', userProfile.company_id)
+                        .single();
+                    
+                    if (companyError) {
+                        console.warn('Empresa não encontrada:', companyError);
+                        // Tentar usar a primeira empresa disponível
+                        await useFirstAvailableCompany();
+                        return;
+                    }
+                    
+                    currentCompany = company;
+                    showAppScreen();
+                } else {
+                    // Usuário sem empresa vinculada
+                    await useFirstAvailableCompany();
+                }
+                
+            } catch (error) {
+                console.error('Erro ao buscar perfil:', error);
+                await supabase.auth.signOut();
+            }
+        }
+
+        // Usar primeira empresa disponível
+        async function useFirstAvailableCompany() {
+            try {
+                const { data: companies, error } = await supabase
+                    .from('companies')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                if (companies && companies.length > 0) {
+                    currentCompany = companies[0];
+                    
+                    // Atualizar perfil do usuário com a empresa
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ company_id: currentCompany.id })
+                        .eq('id', currentUser.id);
+                    
+                    if (updateError) console.warn('Erro ao atualizar perfil:', updateError);
+                    
+                    showAppScreen();
+                } else {
+                    // Não há empresas, criar uma padrão
+                    await createDefaultCompany();
+                }
+                
+            } catch (error) {
+                console.error('Erro ao buscar empresas:', error);
+                await createDefaultCompany();
+            }
+        }
+
+        // Criar empresa padrão
+        async function createDefaultCompany() {
+            try {
+                const { data: company, error } = await supabase
+                    .from('companies')
+                    .insert([
+                        {
+                            name: 'Minha Empresa',
+                            cnpj: '00.000.000/0001-00',
+                            status: 'active',
+                            created_at: new Date().toISOString()
+                        }
+                    ])
+                    .select()
+                    .single();
+                
+                if (error) {
+                    // Se der erro, tentar inserir com estrutura mínima
+                    const { data: simpleCompany, error: simpleError } = await supabase
+                        .from('companies')
+                        .insert([
+                            {
+                                name: 'Minha Empresa',
+                                status: 'active'
+                            }
+                        ])
+                        .select()
+                        .single();
+                    
+                    if (simpleError) throw simpleError;
+                    
+                    company = simpleCompany;
+                }
+                
+                // Atualizar perfil do usuário
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ company_id: company.id })
+                    .eq('id', currentUser.id);
+                
+                if (updateError) console.warn('Erro ao atualizar perfil:', updateError);
+                
+                currentCompany = company;
+                userProfile.company_id = company.id;
+                showAppScreen();
+                
+            } catch (error) {
+                console.error('Erro ao criar empresa padrão:', error);
+                showAlert('Erro ao configurar empresa. Verifique a estrutura da tabela companies.', 'error');
+            }
+        }
+
+        // Configurar navegação entre abas
+        function setupTabNavigation() {
+            const menuItems = document.querySelectorAll('.sidebar-menu li[data-tab]');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    // Atualizar menu ativo
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Mostrar aba correspondente
+                    tabContents.forEach(tab => {
+                        tab.classList.remove('active');
+                        if (tab.id === tabName) {
+                            tab.classList.add('active');
+                            
+                            // Carregar dados específicos da aba
+                            if (tabName === 'users') {
+                                loadUsersData();
+                            } else if (tabName === 'tickets') {
+                                loadTicketsData();
+                            } else if (tabName === 'dashboard') {
+                                loadDashboardData();
+                            } else if (tabName === 'companies') {
+                                loadCompaniesData();
+                            }
+                        }
+                    });
+                });
+            });
+        }
+
+        // Evento de login
+        loginBtn.addEventListener('click', async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showAlert('Por favor, preencha todos os campos!', 'error');
+                return;
+            }
+            
+            // Mostrar loading
+            loginText.textContent = 'Entrando...';
+            loginSpinner.classList.remove('hidden');
+            loginBtn.disabled = true;
+            
+            try {
+                // Fazer login com Supabase Auth
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                await fetchUserProfile();
+                
+            } catch (error) {
+                console.error('Erro no login:', error);
+                showAlert('Credenciais inválidas ou erro de conexão', 'error');
+            } finally {
+                // Restaurar botão
+                loginText.textContent = 'Entrar';
+                loginSpinner.classList.add('hidden');
+                loginBtn.disabled = false;
+            }
+        });
+
+        // Evento de logout
+        logoutBtn.addEventListener('click', async function() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                currentUser = null;
+                currentCompany = null;
+                userProfile = null;
+                
+                showLoginScreen();
+            } catch (error) {
+                console.error('Erro no logout:', error);
+            }
+        });
+
+        // Função para abrir o modal de empresa
+        function openCompanyModal(company = null) {
+            editingCompanyId = company ? company.id : null;
+            
+            const modal = document.getElementById('companyModal');
+            const title = document.getElementById('companyModalTitle');
+            
+            if (company) {
+                title.textContent = 'Editar Empresa';
+                // Preencher formulário com dados existentes
+                fillCompanyForm(company);
+            } else {
+                title.textContent = 'Nova Empresa';
+                document.getElementById('companyForm').reset();
+                document.getElementById('companyStatus').value = 'active';
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        // Preencher formulário com dados da empresa
+        function fillCompanyForm(company) {
+            document.getElementById('companyName').value = company.name || '';
+            document.getElementById('companyCnpj').value = company.cnpj || '';
+            document.getElementById('companyPhone').value = company.phone || '';
+            document.getElementById('companyEmail').value = company.email || '';
+            document.getElementById('companyAddress').value = company.address || '';
+            document.getElementById('companyCity').value = company.city || '';
+            document.getElementById('companyState').value = company.state || '';
+            document.getElementById('companyStatus').value = company.status || 'active';
+            document.getElementById('companyNotes').value = company.notes || '';
+        }
+
+        // Função para fechar o modal
+        function closeCompanyModal() {
+            document.getElementById('companyModal').style.display = 'none';
+            editingCompanyId = null;
+        }
+
+        // Função para salvar empresa
+        async function saveCompany() {
+            const form = document.getElementById('companyForm');
+            const saveBtn = document.getElementById('saveCompanyBtn');
+            
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const companyData = {
+                name: document.getElementById('companyName').value,
+                cnpj: document.getElementById('companyCnpj').value || null,
+                phone: document.getElementById('companyPhone').value || null,
+                email: document.getElementById('companyEmail').value || null,
+                address: document.getElementById('companyAddress').value || null,
+                city: document.getElementById('companyCity').value || null,
+                state: document.getElementById('companyState').value || null,
+                status: document.getElementById('companyStatus').value,
+                notes: document.getElementById('companyNotes').value || null,
+                updated_at: new Date().toISOString()
+            };
+            
+            // Salvar loading
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<div class="spinner"></div> Salvando...';
+            saveBtn.disabled = true;
+            
+            try {
+                let result;
+                
+                if (editingCompanyId) {
+                    // Atualizar empresa existente
+                    result = await supabase
+                        .from('companies')
+                        .update(companyData)
+                        .eq('id', editingCompanyId);
+                } else {
+                    // Criar nova empresa
+                    companyData.created_at = new Date().toISOString();
+                    result = await supabase
+                        .from('companies')
+                        .insert([companyData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                showAlert(`Empresa ${editingCompanyId ? 'atualizada' : 'cadastrada'} com sucesso!`, 'success');
+                closeCompanyModal();
+                loadCompaniesData();
+                
+            } catch (error) {
+                console.error('Erro ao salvar empresa:', error);
+                showAlert('Erro ao salvar empresa: ' + error.message, 'error');
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Função para carregar dados das empresas
+        async function loadCompaniesData() {
+            try {
+                const { data: companies, error } = await supabase
+                    .from('companies')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                const tbody = document.querySelector('#companiesTable tbody');
+                tbody.innerHTML = '';
+                
+                if (companies && companies.length > 0) {
+                    companies.forEach(company => {
+                        const row = document.createElement('tr');
+                        
+                        row.innerHTML = `
+                            <td>${company.name || 'Sem nome'}</td>
+                            <td>${company.cnpj || '-'}</td>
+                            <td>${company.phone || '-'}</td>
+                            <td>${company.email || '-'}</td>
+                            <td><span class="badge ${company.status === 'active' ? 'badge-active' : 'badge-inactive'}">${company.status === 'active' ? 'Ativa' : 'Inativa'}</span></td>
+                            <td>${company.created_at ? new Date(company.created_at).toLocaleDateString('pt-BR') : '-'}</td>
+                            <td class="actions">
+                                <button class="btn btn-primary btn-sm btn-icon edit-company" title="Editar" data-id="${company.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm btn-icon delete-company" title="${company.status === 'active' ? 'Desativar' : 'Ativar'}" data-id="${company.id}" data-status="${company.status}">
+                                    <i class="fas ${company.status === 'active' ? 'fa-ban' : 'fa-check'}"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    // Adicionar eventos aos botões
+                    setupCompanyActions(companies);
+                    
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Nenhuma empresa cadastrada</td></tr>';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar empresas:', error);
+                showAlert('Erro ao carregar lista de empresas', 'error');
+            }
+        }
+
+        // Configurar ações das empresas
+        function setupCompanyActions(companies) {
+            document.querySelectorAll('.edit-company').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const companyId = this.getAttribute('data-id');
+                    const company = companies.find(c => c.id === companyId);
+                    if (company) openCompanyModal(company);
+                });
+            });
+            
+            document.querySelectorAll('.delete-company').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const companyId = this.getAttribute('data-id');
+                    const currentStatus = this.getAttribute('data-status');
+                    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+                    
+                    if (confirm(`Tem certeza que deseja ${newStatus === 'active' ? 'ativar' : 'desativar'} esta empresa?`)) {
+                        await toggleCompanyStatus(companyId, newStatus);
+                    }
+                });
+            });
+        }
+
+        // Função para alternar status da empresa
+        async function toggleCompanyStatus(companyId, newStatus) {
+            try {
+                const { error } = await supabase
+                    .from('companies')
+                    .update({ 
+                        status: newStatus,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', companyId);
+                
+                if (error) throw error;
+                
+                showAlert(`Empresa ${newStatus === 'active' ? 'ativada' : 'desativada'} com sucesso!`, 'success');
+                loadCompaniesData();
+                
+            } catch (error) {
+                console.error('Erro ao alterar status da empresa:', error);
+                showAlert('Erro ao alterar status da empresa', 'error');
+            }
+        }
+
+        // Carregar dados do dashboard
+        async function loadDashboardData() {
+            try {
+                // Buscar estatísticas de chamados
+                const { data: tickets, error: ticketsError } = await supabase
+                    .from('tickets')
+                    .select('*')
+                    .eq('company_id', currentCompany.id);
+                
+                let openTickets = 0;
+                let inProgressTickets = 0;
+                
+                if (!ticketsError && tickets) {
+                    openTickets = tickets.filter(t => t.status === 'open').length;
+                    inProgressTickets = tickets.filter(t => t.status === 'in_progress').length;
+                }
+                
+                // Buscar orçamentos
+                const { data: budgets, error: budgetsError } = await supabase
+                    .from('budgets')
+                    .select('*')
+                    .eq('company_id', currentCompany.id);
+                
+                let pendingBudgets = 0;
+                if (!budgetsError && budgets) {
+                    pendingBudgets = budgets.filter(b => b.status === 'pending').length;
+                }
+                
+                // Buscar transações financeiras
+                const { data: transactions, error: transactionsError } = await supabase
+                    .from('financial_transactions')
+                    .select('*')
+                    .eq('company_id', currentCompany.id)
+                    .eq('type', 'revenue')
+                    .eq('status', 'paid');
+                
+                let monthlyRevenue = 0;
+                if (!transactionsError && transactions) {
+                    monthlyRevenue = transactions.reduce((sum, t) => sum + parseFloat(t.value || 0), 0);
+                }
+                
+                // Atualizar cards
+                document.getElementById('openTickets').textContent = openTickets;
+                document.getElementById('inProgressTickets').textContent = inProgressTickets;
+                document.getElementById('pendingBudgets').textContent = pendingBudgets;
+                document.getElementById('monthlyRevenue').textContent = `R$ ${monthlyRevenue.toFixed(2)}`;
+                
+                // Atualizar tabela de chamados
+                if (tickets) {
+                    updateTicketsTable(tickets.slice(0, 5));
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar dados do dashboard:', error);
+            }
+        }
+
+        // Atualizar tabela de chamados
+        function updateTicketsTable(tickets) {
+            const tbody = document.querySelector('#ticketsTable tbody');
+            tbody.innerHTML = '';
+            
+            if (tickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Nenhum chamado encontrado</td></tr>';
+                return;
+            }
+            
+            tickets.forEach(ticket => {
+                const row = document.createElement('tr');
+                const statusClass = getStatusClass(ticket.status);
+                const priorityClass = getPriorityClass(ticket.priority);
+                
+                row.innerHTML = `
+                    <td>${ticket.ticket_number || ticket.id.substring(0, 8)}</td>
+                    <td>Cliente #${ticket.client_id ? ticket.client_id.substring(0, 8) : 'N/A'}</td>
+                    <td>${ticket.title || 'Sem título'}</td>
+                    <td>Técnico</td>
+                    <td><span class="priority ${priorityClass}"></span> ${getPriorityText(ticket.priority)}</td>
+                    <td><span class="status ${statusClass}">${getStatusText(ticket.status)}</span></td>
+                    <td>${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('pt-BR') : '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Carregar dados dos usuários
+        async function loadUsersData() {
+            try {
+                const { data: users, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('company_id', currentCompany.id);
+                
+                if (error) throw error;
+                
+                const tbody = document.querySelector('#usersTable tbody');
+                tbody.innerHTML = '';
+                
+                if (users && users.length > 0) {
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+                        
+                        row.innerHTML = `
+                            <td>${user.full_name || 'Nome não informado'}</td>
+                            <td>${user.id === currentUser.id ? currentUser.email : 'Usuário do sistema'}</td>
+                            <td><span class="badge ${getRoleBadgeClass(user.role)}">${getRoleText(user.role)}</span></td>
+                            <td>${currentCompany.name}</td>
+                            <td><span class="badge ${user.active ? 'badge-active' : 'badge-inactive'}">${user.active ? 'Ativo' : 'Inativo'}</span></td>
+                            <td class="actions">
+                                <button class="btn btn-primary btn-sm btn-icon" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum usuário encontrado</td></tr>';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar usuários:', error);
+            }
+        }
+
+        // Carregar dados dos chamados
+        async function loadTicketsData() {
+            try {
+                const { data: tickets, error } = await supabase
+                    .from('tickets')
+                    .select('*')
+                    .eq('company_id', currentCompany.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                const tbody = document.querySelector('#allTicketsTable tbody');
+                tbody.innerHTML = '';
+                
+                if (tickets && tickets.length > 0) {
+                    tickets.forEach(ticket => {
+                        const row = document.createElement('tr');
+                        const statusClass = getStatusClass(ticket.status);
+                        const priorityClass = getPriorityClass(ticket.priority);
+                        
+                        row.innerHTML = `
+                            <td>${ticket.ticket_number || ticket.id.substring(0, 8)}</td>
+                            <td>Cliente #${ticket.client_id ? ticket.client_id.substring(0, 8) : 'N/A'}</td>
+                            <td>${ticket.title || 'Sem título'}</td>
+                            <td>Técnico</td>
+                            <td><span class="priority ${priorityClass}"></span> ${getPriorityText(ticket.priority)}</td>
+                            <td><span class="status ${statusClass}">${getStatusText(ticket.status)}</span></td>
+                            <td>${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('pt-BR') : '-'}</td>
+                            <td class="actions">
+                                <button class="btn btn-primary btn-sm btn-icon" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum chamado encontrado</td></tr>';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar chamados:', error);
+            }
+        }
+
+        // Funções auxiliares (mantidas as mesmas)
+        function getStatusClass(status) {
+            const statusMap = {
+                'open': 'open',
+                'in_progress': 'in-progress',
+                'completed': 'completed',
+                'waiting_parts': 'waiting'
+            };
+            return statusMap[status] || 'open';
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'open': 'Aberto',
+                'in_progress': 'Em Andamento',
+                'completed': 'Finalizado',
+                'waiting_parts': 'Aguardando Peças'
+            };
+            return statusMap[status] || 'Aberto';
+        }
+
+        function getPriorityClass(priority) {
+            const priorityMap = {
+                'low': 'low',
+                'medium': 'medium',
+                'high': 'high',
+                'urgent': 'high'
+            };
+            return priorityMap[priority] || 'medium';
+        }
+
+        function getPriorityText(priority) {
+            const priorityMap = {
+                'low': 'Baixa',
+                'medium': 'Média',
+                'high': 'Alta',
+                'urgent': 'Urgente'
+            };
+            return priorityMap[priority] || 'Média';
+        }
+
+        function getRoleBadgeClass(role) {
+            const roleMap = {
+                'admin': 'badge-admin',
+                'technician': 'badge-technician',
+                'attendant': 'badge-attendant'
+            };
+            return roleMap[role] || 'badge-admin';
+        }
+
+        function getRoleText(role) {
+            const roleMap = {
+                'admin': 'Administrador',
+                'technician': 'Técnico',
+                'attendant': 'Atendente'
+            };
+            return roleMap[role] || 'Administrador';
+        }
+
+        function showAlert(message, type) {
+            loginAlert.textContent = message;
+            loginAlert.className = `alert alert-${type}`;
+            loginAlert.style.display = 'block';
+            
+            setTimeout(() => {
+                loginAlert.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateUI() {
+            userNameElement.textContent = userProfile.full_name || currentUser.email;
+            userRoleElement.textContent = getRoleText(userProfile.role);
+            currentCompanyElement.textContent = currentCompany.name;
+        }
+
+        function showAppScreen() {
+            loginScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            
+            updateUI();
+            loadDashboardData();
+            
+            // Mostrar/ocultar funcionalidades baseadas no perfil
+            const adminOnly = document.querySelectorAll('.admin-only');
+            const adminAttendant = document.querySelectorAll('.admin-attendant');
+            const adminAttendantCards = document.querySelectorAll('.admin-attendant-card');
+            const adminAttendantBtns = document.querySelectorAll('.admin-attendant-btn');
+            
+            if (userProfile.role === 'technician') {
+                adminOnly.forEach(el => el.style.display = 'none');
+                adminAttendant.forEach(el => el.style.display = 'none');
+                adminAttendantCards.forEach(el => el.style.display = 'none');
+                adminAttendantBtns.forEach(el => el.style.display = 'none');
+            } else if (userProfile.role === 'attendant') {
+                adminOnly.forEach(el => el.style.display = 'none');
+                adminAttendant.forEach(el => el.style.display = 'block');
+                adminAttendantCards.forEach(el => el.style.display = 'block');
+                adminAttendantBtns.forEach(el => el.style.display = 'block');
+            } else {
+                adminOnly.forEach(el => el.style.display = 'block');
+                adminAttendant.forEach(el => el.style.display = 'block');
+                adminAttendantCards.forEach(el => el.style.display = 'block');
+                adminAttendantBtns.forEach(el => el.style.display = 'block');
+            }
+        }
+
+        function showLoginScreen() {
+            appScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+        }
+    </script>
+</body>
+</html>
