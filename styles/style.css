@@ -22,7 +22,37 @@ body {
     color: var(--dark);
     line-height: 1.6;
 }
+/* Estilos para o seletor de empresas */
+.company-selector {
+    margin-bottom: 20px;
+}
 
+.company-option {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+
+.company-name {
+    font-weight: 600;
+}
+
+.company-cnpj {
+    font-size: 0.8rem;
+    color: var(--gray);
+    opacity: 0.8;
+}
+
+/* Loading para empresas */
+.companies-loading {
+    text-align: center;
+    padding: 10px;
+    color: var(--gray);
+}
+
+.companies-loading .spinner {
+    margin: 0 auto 10px auto;
+}
 /* Login Screen */
 .login-container {
     display: flex;
@@ -743,4 +773,5 @@ th {
 /* Hidden class for toggling views */
 .hidden {
     display: none;
+
 }
